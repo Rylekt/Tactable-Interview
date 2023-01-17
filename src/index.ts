@@ -1,11 +1,43 @@
+
 /**
- * This file is just a silly example to show everything working in the browser.
- * When you're ready to start on your site, clear the file. Happy hacking!
- **/
+ * Riley Stewart-Tonkin
+ */
 
-import confetti from 'canvas-confetti';
+import { inject, injectable } from 'inversify';
 
-confetti.create(document.getElementById('canvas') as HTMLCanvasElement, {
-  resize: true,
-  useWorker: true,
-})({ particleCount: 200, spread: 200 });
+interface IApiManager {
+    fetchData(): Promise<any>;
+}
+
+
+@injectable()
+class TodoClient {
+    async getTodos(): Promise<any> {
+        try {
+            const response = await fetch('https://jsonplaceholder.typicode.com/todos');
+            return await response.json();
+        } catch (error) {
+            console.error(error);
+            throw error;
+        }
+    }
+}
+
+@injectable()
+class ApiManager implements IApiManager {
+    constructor(@inject(TodoClient) private client: TodoClient) {}
+
+    async fetchData(): Promise<any> {
+        return await this.client.getTodos();
+    }
+}
+
+import { Container } from 'inversify';
+
+const container = new Container();
+container.bind<TodoClient>(TodoClient).to(TodoClient);
+container.bind<IApiManager>("IApiManager").to(ApiManager);
+
+const apiManager = container.get<IApiManager>("IApiManager");
+const data = await apiManager.fetchData();
+console.log(data);
